@@ -24,3 +24,4 @@ spec:
             path: /etc/modules-load.d/gpu-vfio.conf
     kernelArguments:
       - 'intel_iommu=on'
+      - 'modprobe.blacklist=nouveau'
