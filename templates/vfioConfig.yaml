@@ -2,7 +2,7 @@
 apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
-  name: 55-vfio-gpu
+  name: 23-vfio-gpu
   labels:
     machineconfiguration.openshift.io/role: worker
 spec:
@@ -13,15 +13,14 @@ spec:
         files:
           - contents:
               source: >-
-                data:text/plain;charset=utf-8;base64,b3B0aW9ucyB2ZmlvLXBjaSBpZHM9MTBkZToxZGI0Cg==
-            mode: 0644
+                data:text/plain;charset=utf-8;base64,<putyourcardbase64signaturehere>
+            mode: 420
             overwrite: true
             path: /etc/modprobe.d/gpu-vfio.conf
           - contents:
               source: 'data:,vfio-pci'
-            mode: 0644
+            mode: 420
             overwrite: true
             path: /etc/modules-load.d/gpu-vfio.conf
     kernelArguments:
       - 'intel_iommu=on'
-      # - 'amd_iommu=on'
