@@ -13,7 +13,7 @@ spec:
       - LiveMigration
     permittedHostDevices:
       pciHostDevices:
-      - pciVendorSelector: "10DE:1DB4"
+      - pciVendorSelector: "10DE:<cardid>"
         resourceName: "nvidia.com/V100"
         externalResourceProvider: false
   customizeComponents: {}
