@@ -282,7 +282,7 @@ spec:
   imagePullPolicy: IfNotPresent
   pathConfig:
     path: "/var/hpvolumes" 
-    useNamingPrefix: "false"
+    useNamingPrefix: False
 ```
 
 oc create -f hostpathprovisioner_cr.yaml -n kubevirt
