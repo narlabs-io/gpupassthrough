@@ -11,10 +11,10 @@ This document will assume that you have already created a base OpenShift bare me
 ## Configuring the bare metal GPU hosts for Passthrough
 
 Once your OpenShift cluster is up and running: <br>
-(1) Install NFD Operator and Create a Policy that enables NVDIA as device manufacturer. <br>
+(1) Install NFD Operator and Create Node Feature Discovery that enables NVDIA as device manufacturer. <br>
 (2) Create and Apply Entitlements: oc create -f 0003-cluster-wide-machineconfigs.yaml  <br>
 Ref: https://docs.nvidia.com/datacenter/kubernetes/openshift-on-gpu-install-guide/index.html<br>
-(3) Install NVIDIA GPU Operator and Create ... <br>
+(3) Install NVIDIA GPU Operator and Create Cluster Policy <br>
 (4) Install RH OCP Virt Operator and Setup Hyperconverged and HostPath Configs. <br>
 
 
