@@ -15,121 +15,13 @@ Once your OpenShift cluster is up and running: <br>
 (2) Create and Apply Entitlements: oc create -f 0003-cluster-wide-machineconfigs.yaml  <br>
 Ref: https://docs.nvidia.com/datacenter/kubernetes/openshift-on-gpu-install-guide/index.html<br>
 (3) Install NVIDIA GPU Operator and Create ... <br>
+(4) Install RH OCP Virt Operator and Setup Hyperconverged and HostPath Configs. <br>
 
-
-
-## Install upstream kubevirt
-
-GPU Passthrough to virtualized machines is not yet supported in OpenShift Virtualization. It will be supported with an upcoming release. In the mean time, in order to try out this functionality we will leverage the upstream "kubevirt" project to enable PCI passthrough.
-
-### Install Kubevirt from upstream
-
-```
-# get the latest release of kubevirt
-$ export RELEASE=$(curl -s https://github.com/kubevirt/kubevirt/releases/latest | grep -o "v[0-9]\.[0-9]*\.[0-9]*")
-$ echo $RELEASE
-# Ensure that the release is the one you want to install
-# Deploy the KubeVirt operator
-$ oc apply -f https://github.com/kubevirt/kubevirt/releases/download/${RELEASE}/kubevirt-operator.yaml
-```
-
-This will create a new namespace called "kubevirt" and install the required CRDs.  
-
-Once the operator has been applied we can go ahead and create our kubevirt custom-resource instance. This will allow us to enable the GPU feature gate as well as enable the kubevirt device manager to handle the GPU device we are going to pass through.
-
-Edit the file templates/kubevirt-cr.yaml, updating the section permittedHostDevices and update the host devices to match what you have. For each card type you want to support create a new pciVendorSelector section. The resourceName is arbitrary, but should reflect the card you are configuring. Below is an example of configuring more than one device type:
-
-```
-permittedHostDevices:
-  pciHostDevices:
-  - pciVendorSelector: "10DE:1DB4"
-    resourceName: "nvidia.com/V100"
-    externalResourceProvider: false
-  - pciVendorSelector: "10DE:1234"
-    resourceName: "nvidia.com/AnotherCardType"
-    externalResourceProvider: false
-```
-
-Now we will apply the configuration and wait for the install/configuration to complete:
-
-```
-$ oc apply -f templates/kubevirt-cr.yaml
-# wait until all KubeVirt components are up
-$ oc -n kubevirt wait kv kubevirt --for condition=Available
-```
-
-To validate that the kubevirt device manager has successfully configured/recognized the cards, run the following oc command and look for the "resourceName" to be listed in the "Capacity" section and the "Allocatable" section as shown below:
-
-```
-$ oc describe node/node6.ocp4rhv.example.com
-Name:               node6.ocp4rhv.example.com
-Roles:              worker
-Labels:             beta.kubernetes.io/arch=amd64
-...
-Capacity:
-  cpu:                            32
-  memory:                         131924860Ki
-  nvidia.com/V100:                1
-  pods:                           250
-Allocatable:
-  cpu:                            31500m
-  memory:                         130773884Ki
-  nvidia.com/V100:                1
-  pods:                           250
-...
-Allocated resources:
-  (Total limits may be over 100 percent, i.e., overcommitted.)
-  Resource                       Requests     Limits
-  --------                       --------     ------
-  cpu                            404m (1%)    0 (0%)
-  memory                         1520Mi (1%)  512Mi (0%)
-  ephemeral-storage              0 (0%)       0 (0%)
-  hugepages-1Gi                  0 (0%)       0 (0%)
-  hugepages-2Mi                  0 (0%)       0 (0%)
-  devices.kubevirt.io/kvm        0            0
-  devices.kubevirt.io/tun        0            0
-  devices.kubevirt.io/vhost-net  0            0
-  nvidia.com/V100                0            0
-```
-
-### Install CDI Importer
-
-The Containerized Data Importer (CDI) is used to help make virtual machine creation from ISO files easier. We will install the CDI operator directly from github using the steps below. They will create a namespace called "cdi", install the operator in that namespace and then create an instance of the CDI service running in the cdi namespace. It will also create a service and a route so that you can access the service later in the install process.
-
-```
-$ export VERSION=$(curl -s https://github.com/kubevirt/containerized-data-importer/releases/latest | grep -o "v[0-9]\.[0-9]*\.[0-9]*")
-$ echo $VERSION
-$ oc create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$VERSION/cdi-operator.yaml
-$ oc create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$VERSION/cdi-cr.yaml
-$ oc -n cdi wait cdi cdi --for condition=Available
-# get the route for the CDI service. record this for later
-$ oc -n cdi get routes
-```
 
 ## Setup Storage
 
-You will need storage to run your virtual machines. If you have already configured persistent storage for your cluster you can skip these steps and move onto the [Create new VM](#create-new-vm) step. Notes below are for setting up NFS or hostPath provisioner.
+You will need storage to run your virtual machines. If you have already configured persistent storage for your cluster you can skip these steps and move onto the [Create new VM](#create-new-vm) step. Notes below are for hostPath provisioner.
 
-### NFS Client Storage
-
-Clone this: https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner
-
-```
-$ oc new-project nfs-provisioner
-$ export NAMESPACE=`oc project -q`
-$ sed -i'' "s/namespace:.*/namespace: $NAMESPACE/g" ./deploy/rbac.yaml
-$ oc create -f deploy/rbac.yaml
-$ oc create role use-scc-hostmount-anyuid --verb=use --resource=scc --resource-name=hostmount-anyuid -n $NAMESPACE
-$ oc adm policy add-role-to-user use-scc-hostmount-anyuid system:serviceaccount:$NAMESPACE:nfs-client-provisioner -n $NAMESPACE
-$ oc adm policy add-scc-to-user hostmount-anyuid -z nfs-client-provisioner
-```
-
-Edit the deploy/deployment.yaml and update with your server information and be sure to also update the namespace you are running the provisioner in.
-
-```
-oc create -f deploy/deployment.yaml
-oc create -f deploy/class.yaml
-```
 
 ### HostPath Provisioner
 
