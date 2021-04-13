@@ -33,9 +33,9 @@ This document will assume that you have already created a base OpenShift bare me
 ## Configuring the bare metal GPU hosts for Passthrough
 
 Once your OpenShift cluster is up and running: <br>
-(1) Install NFD Operator and Create a Policy that enables NVDIA as device manufacturer.
+(1) Install NFD Operator and Create a Policy that enables NVDIA as device manufacturer. <br>
 (2) Create and Apply Entitlements: oc create -f 0003-cluster-wide-machineconfigs.yaml <br>
-(3) Install NVIDIA GPU Operator and Create ...
+(3) Install NVIDIA GPU Operator and Create ... <br>
 
 
 
