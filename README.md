@@ -1,40 +1,19 @@
 # GPU Passthrough in OpenShift & Kubevirt
 
-## Table of Contents
-
-<!-- TOC -->
-- [GPU Passthrough in OpenShift & Kubevirt](#gpu-passthrough-in-openshift--kubevirt)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-  - [Prerequisites](#prerequisites)
-  - [Configuring the bare metal GPU hosts for Passthrough](#configuring-the-bare-metal-gpu-hosts-for-passthrough)
-    - [Creating vfioConfig for pci passthrough](#creating-vfioconfig-for-pci-passthrough)
-    - [Validate proper node configuration](#validate-proper-node-configuration)
-  - [Install upstream kubevirt](#install-upstream-kubevirt)
-    - [Install Kubevirt from upstream](#install-kubevirt-from-upstream)
-    - [Install CDI Importer](#install-cdi-importer)
-  - [Setup Storage](#setup-storage)
-    - [NFS Client Storage](#nfs-client-storage)
-    - [HostPath Provisioner](#hostpath-provisioner)
-- [Deploying a Windows VM](#deploying-a-windows-vm)
-  - [Create new VM](#create-new-vm)
-  - [Windows 10 needs to be updated before the driver will install](#windows-10-needs-to-be-updated-before-the-driver-will-install)
-    - [Accessing a Windows VM directly via RDP](#accessing-a-windows-vm-directly-via-rdp)
-<!-- TOC -->
-
 ## Introduction
 
-It is possible to support video card GPU passthrough using OpenShift and Kubevirt (upstream OpenShift Virtualization). The instructions below will help create a configuration that allows for running ONE virtual machine per physical host with a NVidia GPU card installed. This is an unsupported setup, but will give you an idea of what functions and features are coming to OpenShift Virtualization in the coming releases.
+It is possible to support video card GPU passthrough using OpenShift and Kubevirt (upstream OpenShift Virtualization). The instructions below will help create a configuration that allows for running ONE virtual machine per physical host with a NVidia GPU card installed. 
 
 ## Prerequisites
 
-This document will assume that you have already created a base OpenShift bare metal cluster with at least one baremetal host with a supported NVidia GPU card. These instructions were tested using a V100 card, but should work for other modern GPU cards. See [Installing a cluster on bare metal](https://docs.openshift.com/container-platform/4.6/installing/installing_bare_metal/installing-bare-metal.html) for details on getting a bare metal cluster up and running.
+This document will assume that you have already created a base OpenShift bare metal cluster with at least one baremetal host with a supported NVidia GPU card. These instructions were tested using a V100 card, but should work for other modern GPU cards.
 
 ## Configuring the bare metal GPU hosts for Passthrough
 
 Once your OpenShift cluster is up and running: <br>
 (1) Install NFD Operator and Create a Policy that enables NVDIA as device manufacturer. <br>
-(2) Create and Apply Entitlements: oc create -f 0003-cluster-wide-machineconfigs.yaml <br>
+(2) Create and Apply Entitlements: oc create -f 0003-cluster-wide-machineconfigs.yaml  <br>
+Ref: https://docs.nvidia.com/datacenter/kubernetes/openshift-on-gpu-install-guide/index.html<br>
 (3) Install NVIDIA GPU Operator and Create ... <br>
 
 
