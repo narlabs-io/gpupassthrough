@@ -32,95 +32,12 @@ This document will assume that you have already created a base OpenShift bare me
 
 ## Configuring the bare metal GPU hosts for Passthrough
 
-Once your OpenShift cluster is up and running, we need to create some configuration changes to disable loading the default NVidia kernel driver. We will need to identify the hardware IDs for each card in each bare metal host. We will start by logging into each worker node with a GPU and record the PCI ID:
+Once your OpenShift cluster is up and running: <br>
+(1) Install NFD Operator and Create a Policy that enables NVDIA as device manufacturer.
+(2) Create and Apply Entitlements: oc create -f 0003-cluster-wide-machineconfigs.yaml <br>
+(3) Install NVIDIA GPU Operator and Create ...
 
-```
-oc get nodes
-# find the node name of the hardware with GPUs
-oc debug node/<node name>
-```
 
-Once the debug node is up, we need to run a lspci:
-
-```
-$ chroot /host
-$ lspci -nn
-04:00.0 VGA compatible controller [0300]: NVIDIA Corporation GK208B [GeForce GT 710] [10de:128b] (rev a1)
-04:00.1 Audio device [0403]: NVIDIA Corporation GK208 HDMI/DP Audio Controller [10de:0e0f] (rev a1)
-09:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
-```
-
-In the above example, the PCI id we are looking for is "10de:1db4". Record this information for each card type you plan to use.
-
-NOTE: If you are using a card that has subfunctions on it you need to ensure that ALL sub funtions are also configured for passthrough. Below is output that shows an example of a card that has multiple functions. For the example card below you would need to configure "10de:1e30,10de:10f7,10de:1ad6,10de:1ad7" for vfio passthrough in the Creating [vfioConfig for pci passthrough](#creating-vfioconfig-for-pci-passthrough) step.
-
-```
-# lspci -nn | grep -i nvidia
-1a:00.0 VGA compatible controller [0300]: NVIDIA Corporation TU102GL [Quadro RTX 6000/8000] [10de:1e30] (rev a1)
-1a:00.1 Audio device [0403]: NVIDIA Corporation TU102 High Definition Audio Controller [10de:10f7] (rev a1)
-1a:00.2 USB controller [0c03]: NVIDIA Corporation TU102 USB 3.1 Host Controller [10de:1ad6] (rev a1)
-1a:00.3 Serial bus controller [0c80]: NVIDIA Corporation TU102 USB Type-C UCSI Controller [10de:1ad7] (rev a1)
-```
-
-### Creating vfioConfig for pci passthrough
-
-Now that we have identified all the PCI ids that identify the cards we want to run in passthrough, we need to configure our OpenShift cluster to specifically assign the "vfio" driver to the card. To do this we will apply a machineConfig to our cluster that specifically assigns the vfio driver to the associated GPU card.
-
-We are going to create a base64 encoded string which we will put in our machineConfig file. To do this, run the following command with the VendorID(s) that you want to put into passthrough mode. Be sure to put the vendor IDs in using lowercase letters only:
-
-```
-$ echo "options vfio-pci ids=10de:1db4" | base64
-b3B0aW9ucyB2ZmlvLXBjaSBpZHM9MTBkZToxZGI0Cg==
-```
-
-Using the base64 output from above update the storage section of the file called "template/vfioConfig.yaml" replacing the example base64 encoded string with the updated one from above.
-
-```
-storage:
-  files:
-    - contents:
-        source: >-
-          data:text/plain;charset=utf-8;base64,b3B0aW9ucyB2ZmlvLXBjaSBpZHM9MTBkZToxZGI0Cg==
-```
-
-Be sure to update the contents source with the base64 string you got from the prior step. In addition to enabling the vfio drivers we need to ensure that IOMMO is enabled for the worker nodes. Depending on your CPU brand (AMD or Intel) update the kernelArguments section to enable IOMMU for your particular processor.
-
-Log into your cluster with the oc command and then apply the vfioConfig.yaml file to your cluster:
-
-NOTE: This will reboot all your worker nodes one at a time to apply the changes.
-
-```
-$ oc login <cluster name>
-$ oc create -f vfioConfig.yaml
-$ oc get machineconfigpool
-# WAIT for worker to have all machinecounts updated
-```
-
-### Validate proper node configuration
-
-Once all the nodes have rebooted, use the debug pod to check the drivers loaded for your cards:
-
-```
-oc get nodes
-# find the node name of the hardware with GPUs
-oc debug node/<node name>
-```
-
-Once the debug node is up, we need to run a lspci:
-
-```
-$ chroot /host
-$ lspci -nnk -d 10de:
-1a:00.0 VGA compatible controller [0300]: NVIDIA Corporation TU102GL [Quadro RTX 6000/8000] [10de:1e30] (rev a1)
-	Subsystem: NVIDIA Corporation Quadro RTX 8000 [10de:129e]
-	Kernel driver in use: vfio-pci
-# ensure that the target card has the vfio_pci driver attached.
-$ dmesg | grep IOMMU 
-[ 000000] DMAR: IOMMU enabled
-# ensure that IOMMU is enabled
-```
-
-If you have a card with multiple functions, ensure that all functions have the vfio driver loaded for the function.
 
 ## Install upstream kubevirt
 
